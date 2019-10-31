@@ -1,3 +1,4 @@
+const net = require('net');
 const factory = {};
 module.exports = factory;
 factory.create = function (port,messageHandler)
