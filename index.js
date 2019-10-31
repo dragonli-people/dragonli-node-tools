@@ -6,6 +6,7 @@ const HttpRequest = require('./libs/HttpRequest');
 const RedisHandlerFactory =  require('./libs/RedisHandlerFactory');
 const SimpleGetRequest =  require('./libs/SimpleGetRequest');
 const WebsocketPoolFactory =  require('./libs/WebsocketPoolFactory');
+const TelnetFactory =  require('./libs/TelnetFactory');
 
 
 module.exports = {
@@ -14,7 +15,7 @@ module.exports = {
     GeneralUtil,
     RedisHandlerFactory,
     HttpRequest,
-    RedisHandlerFactory,
     SimpleGetRequest,
     WebsocketPoolFactory,
+    TelnetFactory,
 }
