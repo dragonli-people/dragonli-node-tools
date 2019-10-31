@@ -1,0 +1,28 @@
+{
+  "name": "dragonli-node-tools",
+  "version": "0.9.0",
+  "description": "This is a node service framework that supports web services and other business services, such as timed round robin services and telnet based services",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --use-strict --harmony ./app"
+  },
+  "keywords": [
+    "node",
+    "web Service",
+    "framework"
+  ],
+  "author": "ijizhe",
+  "license": "ISC",
+  "dependencies": {
+    "connect-multiparty": "^2.0.0",
+    "crypto": "0.0.3",
+    "json2csv": "^3.7.3",
+    "multiparty": "^4.1.3",
+    "node-redis": "^0.1.7",
+    "redis": "^2.7.1",
+    "request": "^2.81.0",
+    "serve-favicon": "~2.3.0",
+    "ws": "^2.2.2",
+    "xlsx": "^0.8.4"
+  }
+}
