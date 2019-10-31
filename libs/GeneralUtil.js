@@ -3,6 +3,19 @@ root.substitute = (txt,...paras)=>
     txt && paras.map((v, index) => txt = txt.replace(RegExp('\\{' + index + '\\}', 'gi'), v)) && txt || ''
 
 root.sleep = t=>new Promise(res=>setTimeout(_=>res(),t));
+
+root.getIp = function (request) {
+    let ip = request.headers['x-forwarded-for'] ||
+        request.ip ||
+        request.connection.remoteAddress ||
+        request.socket.remoteAddress ||
+        request.connection.socket.remoteAddress || '';
+    if(ip.split(',').length>0){
+        ip = ip.split(',')[0]
+    }
+    var m = ip.match(/\d+\.\d+\.\d+\.\d+/);
+    return m ? ip[0] : ip;
+};
 Promise.queue = async function(list,ignoreError=true){
     var arr = [];
     for(var i=0;i<list.length;i++) {
