@@ -7,7 +7,7 @@ const SimpleGetRequest =  require('./libs/SimpleGetRequest');
 const WebsocketPoolFactory =  require('./libs/WebsocketPoolFactory');
 const TelnetFactory =  require('./libs/TelnetFactory');
 const MysqlHandlerFactory =  require('./libs/MysqlHandlerFactory');
-
+const {sleep} = GeneralUtil;
 
 module.exports = {
     BatchCsv,
@@ -19,4 +19,5 @@ module.exports = {
     WebsocketPoolFactory,
     TelnetFactory,
     MysqlHandlerFactory,
+    sleep,
 }
