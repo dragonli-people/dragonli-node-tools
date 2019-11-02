@@ -135,6 +135,7 @@ factory.create = async function (para1,para2) {
             return await redisExec(conn,cmd,...paras);
         }
     })
+    return handler;
 }
 
 function createConnect(pool,host,port,size,timeout=5000)
