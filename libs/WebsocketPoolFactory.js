@@ -20,6 +20,7 @@ function onMessage(pool, event, websocket) {
     }catch (e){
 
     }
+    console.log(`onmessage----${event.data}--${websocket.lastResponse}`,pool.onMessage)
     pool.onMessage && pool.onMessage(event.data,websocket)
 }
 
@@ -98,7 +99,7 @@ factory.create = async function (_host,_port,_size,_query,heartDataFunc=null,che
     pool.start = async function(host,port,size,query,onMessage,heartDataFunc)
     {
         heartDataFunc = heartDataFunc || ( ()=>({'heart':true}) );
-        pool.onMessage = onMessage;
+        // pool.onMessage = onMessage;
         await Promise.all(Array(size).fill(null).map(_=>createConnect(host,port,query,heartDataFunc)));
     }
 
