@@ -6,11 +6,11 @@ const {sleep}=require('./GeneralUtil');
 const factory = {};
 
 function onMessage(pool, event, websocket) {
-    websocket.lastResponse = Date.now()
+    websocket.lastResponse = Date.now();
     // console.log(`onmessage----${event.data}--${websocket.lastResponse}`)
     try{
         let data = JSON.parse(event.data)
-        if(data && data.heart)
+        if(data && ( data.heart || data.available ) )
         {
             // console.log(`心跳包回来---${data.heart}`)
             // websocket.xxx = 0000;
@@ -26,7 +26,7 @@ function onMessage(pool, event, websocket) {
 
 
 module.exports = factory;
-factory.create = async function (_host,_port,_size,_query,checkHeartInterval=1000) {
+factory.create = async function (_host,_port,_size,_query,heartDataFunc=null,checkHeartInterval=1000) {
 
     const connects = []
     const pool = {}
@@ -45,9 +45,10 @@ factory.create = async function (_host,_port,_size,_query,checkHeartInterval=100
 
             if(now - websocket.lastResponse > 1000 )
             {
-                // console.log(`send-${now} - ${websocket.lastResponse}`)
+                // console.log(`send-${now} - ${websocket.lastResponse}`);
+                // console.log(websocket.heartDataFun,typeof websocket.heartDataFun,websocket.send);
                 websocket.heartDataFunc && typeof websocket.heartDataFunc === 'function'
-                    && websocket.send(JSON.stringify(websocket.heartDataFunc()))
+                     && websocket.send(JSON.stringify(websocket.heartDataFunc()))
                 return;
             }
         })
@@ -60,6 +61,7 @@ factory.create = async function (_host,_port,_size,_query,checkHeartInterval=100
             setTimeout(_=>{hadResult=true;rej(new Error("connect time out"))},5000);
             query = query ? `?${query}` :'';
             let websocket = new WebSocket(`ws://${host}:${port}${query}`)//'ws://10.0.0.51:1093');
+            websocket.heartDataFunc = heartDataFunc;
             websocket.onopen = function (event) {
                 // console.log("websocket================open")
                 //todo logs
@@ -89,14 +91,15 @@ factory.create = async function (_host,_port,_size,_query,checkHeartInterval=100
     function removeConnect(c,index)
     {
         ((index = connects.indexOf(c))>=0 ) && connects.splice(index,1);
-        !c.hadRemoved && ( c.hadRemoved = true ) && connects.length < size && createConnect(host,port,query)
+        !c.hadRemoved && ( c.hadRemoved = true ) && connects.length < _size && createConnect(_host,_port,_query,c.heartDataFunc)
     }
 
     var host,port,size,query,poolSize = 0;
-    pool.start = async function(host,port,query,size=5,onMessage,heartDataFunc=()=>({'heart':true}))
+    pool.start = async function(host,port,size,query,onMessage,heartDataFunc)
     {
+        heartDataFunc = heartDataFunc || ( ()=>({'heart':true}) );
         pool.onMessage = onMessage;
-        await Promise.all(Array(size).fill(null).map(_=>createConnect(host,port,query,heartDataFunc())));
+        await Promise.all(Array(size).fill(null).map(_=>createConnect(host,port,query,heartDataFunc)));
     }
 
     let index = 0;
