@@ -20,18 +20,19 @@ function onMessage(pool, event, websocket) {
     }catch (e){
 
     }
-    console.log(`onmessage----${event.data}--${websocket.lastResponse}`,pool.onMessage)
+    // console.log(`onmessage----${event.data}--${websocket.lastResponse}`,pool.onMessage)
     pool.onMessage && pool.onMessage(event.data,websocket)
 }
 
 
 
 module.exports = factory;
-factory.create = async function (_host,_port,_size,_query,heartDataFunc=null,checkHeartInterval=1000) {
+factory.create = async function (onMessageCallback,_host,_port,_size,_query,heartDataFunc=null,checkHeartInterval=1000) {
 
     const connects = []
     const pool = {}
 
+    pool.onMessage = onMessageCallback;
     setInterval(()=>{
         const now = Date.now();
         // console.log(`exec set interval:${now}`);
@@ -99,7 +100,6 @@ factory.create = async function (_host,_port,_size,_query,heartDataFunc=null,che
     pool.start = async function(host,port,size,query,onMessage,heartDataFunc)
     {
         heartDataFunc = heartDataFunc || ( ()=>({'heart':true}) );
-        // pool.onMessage = onMessage;
         await Promise.all(Array(size).fill(null).map(_=>createConnect(host,port,query,heartDataFunc)));
     }
 
