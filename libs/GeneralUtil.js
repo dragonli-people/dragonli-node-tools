@@ -107,5 +107,31 @@ Array.prototype.isSort = function (sortFunc=(v1,v2=>v1-v2)){
 root.promiseFactory = (result,promise)=>
     ( promise = new Promise((resolve,reject)=>( result={resolve,reject} ) ) ) && ( result.promise = promise ) && result;
 
+// for example:
+// var testData = {
+//     'user.id': 1,
+//     'user.username': 'dragonli',
+//     'user.passwd': 'asdf',
+//     'user.city.id': 1,
+//     'user.city.name': 'bejing',
+//     'user.city.country.id': 1,
+//     'user.city.country.name': 'English',
+// }
+// getObjectByPrefix(testData,'user');
+function getObjectByPrefix (source,header){
+    var headerDot = `${header}.`
+    var keys = Object.keys(source).filter(key=>key.substr(0,headerDot.length) === headerDot);
+    var myKeys = keys.filter(key=>!~key.indexOf('.',headerDot.length)).map(key=>key.slice(headerDot.length));
+    var childKeys = keys.map((key,nextDot)=>(nextDot = key.indexOf('.',headerDot.length) )
+        && ~nextDot && key.slice(headerDot.length,nextDot) || null ).filter(v=>v);
+    var node = {};
+    myKeys.forEach(key=>node[key] = source[`${headerDot}${key}`]);//such as user.id user.username user.passwd
+    childKeys.forEach(key=>node[key]=getObjectByPrefix(source,`${headerDot}${key}`));
+    return node;
+
+    // return Object.keys(source).filter(key=>(new RegExp(`^${head}\\..+$`)).test(key))
+    //     .reduce((result,key)=>( ( result[key.replace(new RegExp(`^${head}\\.`),'')]=source[key] ) || true ) && result,{});
+}
+root.getObjectByPrefix = getObjectByPrefix;
 
 module.exports = root;
