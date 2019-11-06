@@ -1,11 +1,12 @@
 const mysql=require('mysql');
+const GeneralUtil = require('./GeneralUtil')
 
 const root = {};
 module.exports = root;
 root.create = handlerFactory;
 
 function connectFactory(host,port,user,password,database,multipleStatements=false) {
-    console.log('===debug1===',host,port,user,password,database);
+    console.log('===mysql try connecting===',host,port,user,password,database);
 
     var connection = mysql.createConnection({
         host,
@@ -22,10 +23,10 @@ function connectFactory(host,port,user,password,database,multipleStatements=fals
                 console.error('error connecting:' + err.stack);
                 return;
             }
-            console.log('connected as id ' + connection.threadId);
+            console.log('mysql connected successed! with id ' + connection.threadId);
             setInterval(_=>connection.query('select UNIX_TIMESTAMP()'),5*60*1000);
             resolve(connection);
-        })
+        });
     })
 }
 
@@ -90,6 +91,25 @@ async function handlerFactory(host,port,user,pass,database){
         });
     }
 
+    handler.join = async function (list, leftKey, newField, table, rightKey, dir='left',autoCloneRight=true) {
+        var leftKeyValues = list.map(v=>v[leftKey]).filter(v=>v);
+        leftKeyValues = [...new Set(leftKeyValues)];
+        list.forEach(v=>v[newField]=null);
+        if(leftKeyValues.length === 0)return list;
+        console.log('sql==',`select * from ${table} where ${rightKey} in (${leftKeyValues.map(v=>'?').join(',')})`,JSON.stringify(leftKeyValues));
+        var otherList = await this.query(`select * from ${table} where 
+            ${rightKey} in (${leftKeyValues.map(v=>'?').join(',')})` ,...leftKeyValues);
+        list.joinList(otherList,leftKey,rightKey,newField,dir,autoCloneRight);
+        return list;
+    }
+
+    handler.leftJoin = function (list, leftKey, newField, table, rightKey,autoCloneRight=true) {
+        return this.join(list, leftKey, newField, table, rightKey,'left',autoCloneRight);
+    }
+
+    handler.rightJoin = function (list, leftKey, newField, table, rightKey,autoCloneRight=true) {
+        return this.join(list, leftKey, newField, table, rightKey,'right',autoCloneRight);
+    }
+
     return handler;
 }
-

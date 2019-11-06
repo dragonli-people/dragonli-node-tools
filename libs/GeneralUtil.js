@@ -67,7 +67,7 @@ Array.prototype.dictionary = function (keyFilter,valueFilter,skipIfExsit=false,a
 
 }
 
-Array.prototype.leftJoin = function (otherList,leftFieldFilter,rightFieldFilter,leftNewFiled,toOne=true,autoCloneRight=true){
+Array.prototype.joinList = function (otherList,leftFieldFilter,rightFieldFilter,leftNewFiled,dir='left',autoCloneRight=true){
     if(!leftFieldFilter) throw new Error('leftFieldFilter cant be empty');
     if(typeof leftFieldFilter === 'string') leftFieldFilter = ( (key)=>v=>v[key] )(leftFieldFilter);
     if(typeof leftFieldFilter !== 'function') throw new Error('leftFieldFilter only can be string or function(return left field value)');
@@ -83,8 +83,8 @@ Array.prototype.leftJoin = function (otherList,leftFieldFilter,rightFieldFilter,
         if(!leftJoinValue && leftJoinValue!== 0)return;
         var rightList = otherList.filter(that=>leftJoinValue === rightFieldFilter(that));
         autoCloneRight && (rightList = rightList.map(v=>JSON.parse(JSON.stringify(v))));
-        one[leftNewFiled] = toOne ? rightList[0] || null : rightList;
-    })
+        one[leftNewFiled] = dir === 'left' ? rightList[0] || null : rightList;
+    });
 }
 
 
