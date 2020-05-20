@@ -123,5 +123,15 @@ async function handlerFactory(host,port,user,pass,database){
         return this.join(list, leftKey, newField, table, rightKey,'right',autoCloneRight);
     }
 
+    handler.save = async function (table, one, pk='id'){
+        if( one[pk] )
+            await this.updateOne ( table, one )
+        else{
+            var result = await this.addOne( table, one );
+            [one] = await this.query( `select * from ${table} where ${pk} = ?`,result.insertId );
+        }
+        return one;
+    }
+
     return handler;
 }
