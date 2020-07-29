@@ -1,6 +1,6 @@
 {
   "name": "dragonli-node-tools",
-  "version": "0.9.0",
+  "version": "0.9.4",
   "description": "This is a node service framework that supports web services and other business services, such as timed round robin services and telnet based services",
   "main": "index.js",
   "scripts": {

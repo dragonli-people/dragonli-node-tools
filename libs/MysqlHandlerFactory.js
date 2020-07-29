@@ -4,21 +4,33 @@ const GeneralUtil = require('./GeneralUtil')
 const root = {};
 module.exports = root;
 root.create = handlerFactory;
+var mysqlHandlerPool;
 
-function connectFactory(host,port,user,password,database,multipleStatements=false) {
+function connectFactory(host,port,user,password,database,multipleStatements=false, connectionLimit = 10) {
     console.log('===mysql try connecting===',host,port,user,password,database);
 
-    var connection = mysql.createConnection({
-        host,
-        port,
-        user,
-        password,
-        database,
-        multipleStatements,
-    });
-
+    if (!mysqlHandlerPool) {
+        mysqlHandlerPool = mysql.createPool({
+            host,
+            port,
+            user,
+            password,
+            database,
+            multipleStatements,
+            connectionLimit
+        })
+        console.log('===mysqlHandlerPool===', mysqlHandlerPool)
+    }
+    // var connection = mysql.createConnection({
+    //     host,
+    //     port,
+    //     user,
+    //     password,
+    //     database,
+    //     multipleStatements,
+    // });
     return new Promise(resolve => {
-        connection.connect(function (err) {
+        return mysqlHandlerPool.getConnection((err, connection) => {
             if (err) {
                 console.error('error connecting:' + err.stack);
                 return;
@@ -26,7 +38,7 @@ function connectFactory(host,port,user,password,database,multipleStatements=fals
             console.log('mysql connected successed! with id ' + connection.threadId);
             setInterval(_=>connection.query('select UNIX_TIMESTAMP()'),5*60*1000);
             resolve(connection);
-        });
+        })
     })
 }
 
@@ -109,6 +121,16 @@ async function handlerFactory(host,port,user,pass,database){
 
     handler.rightJoin = function (list, leftKey, newField, table, rightKey,autoCloneRight=true) {
         return this.join(list, leftKey, newField, table, rightKey,'right',autoCloneRight);
+    }
+
+    handler.save = async function (table, one, pk='id'){
+        if( one[pk] )
+            await this.updateOne ( table, one )
+        else{
+            var result = await this.addOne( table, one );
+            [one] = await this.query( `select * from ${table} where ${pk} = ?`,result.insertId );
+        }
+        return one;
     }
 
     return handler;
