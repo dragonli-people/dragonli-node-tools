@@ -26,7 +26,7 @@ async function extractOneImgInfo(str){
     var buffer,[_,code] = str.match(/src=\"(.*)\"/i) || [];
     if(!code)return null;
     var [__,base64] = code.match(/^data\:.*;base64,(.*)/i ) || [];
-    console.log('base64',base64 && base64.length || false);
+    // console.log('base64',base64 && base64.length || false);
     if(base64)return Buffer.from(base64,'base64');
     if( code.match(/^(http\:\/\/)|(https\:\/\/)/gi) ) return await httpGetBuffer(code);//远程抓取
     return null;
