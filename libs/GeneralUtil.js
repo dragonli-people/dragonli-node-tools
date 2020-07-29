@@ -86,9 +86,79 @@ Date.prototype.format = function (fmt) { //author: meizz
         "S": this.getMilliseconds() //毫秒
     };
     if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
-    for (var k in o)
-        if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+    for (var k in o){
+        // console.log('fmt',k,fmt)
+        if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, o[k].toString().padStart(RegExp.$1.length,'0') );// (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+        // else fmt = fmt.replace(RegExp.$1,'');
+    }
     return fmt;
+}
+
+//回头迁移到dragonli-tools里
+Array.prototype.treeEach = function ( f , autoNext = true , childrenKey = 'children' ){
+    this.forEach( (v,i,arr)=>visit( v,null,1,i,this ));
+    function visit( current,parent , level , index , list ){
+        var children = current && current[childrenKey] || [];
+        var next = ()=> children && children.forEach( (v,i,arr)=>visit(v,current,level+1,i,children ) );
+        f( current,parent,level,index,list,next);
+        autoNext && next();
+    }
+}
+
+// treeFlattenMap  treeMap treeFlattenFilter treeFilter
+
+Array.prototype.treeFlattenMap = function ( f , autoNext = true , childrenKey = 'children' ){
+    const arr = [];
+    this.treeEach( (...paras)=>arr.push(f(...paras)) );
+    return arr;
+}
+
+Array.prototype.treeMap = function ( f , autoNext = true , childrenKey = 'children' ){
+    const arr = [];
+    this.forEach( (v,i,arr)=>visit( v,null,arr,1,i,this ));
+    function visit( current,parent,parentChildren , level , index , list ){
+        var newChildren = [];
+        var children = current && current[childrenKey] || [];
+        var next = ()=> children && children.forEach( (v,i,arr)=>visit(v,current,newChildren,level+1,i,children ) );
+        var o = f( current,parent,level,index,list,next);
+        newChildren.length && ( o[childrenKey] = newChildren );
+        parentChildren.push( o );
+        autoNext && next();
+    }
+    return arr;
+}
+
+Array.prototype.treeFlattenFilter = function ( f , autoNext = true , childrenKey = 'children' ){
+    const arr = [];
+    this.treeEach( (v,...paras)=>f(v,...paras) && arr.push(v) );
+    return arr;
+}
+
+Array.prototype.treeFilter = function ( f , autoNext = true , childrenKey = 'children' ){
+    const arr = [];
+    this.forEach( (v,i,arr)=>visit( v,null,arr,1,i,this ));
+    function visit( current,parent,parentChildren , level , index , list ){
+        var newChildren = [];
+        var children = current && current[childrenKey] || [];
+        var next = ()=> children && children.forEach( (v,i,arr)=>visit(v,current,newChildren,level+1,i,children ) );
+        var flag = f( current,parent,level,index,list,next);
+        newChildren.length && ( current[childrenKey] = newChildren );
+        flag && parentChildren.push( v );
+        autoNext && next();
+    }
+    return arr;
+}
+
+Array.prototype.simpleToTree = function (parentField,pkField,childrenKey='children'){
+    //此函数未考虑效率
+    var arr = [...this];
+    this.length = 0;
+    arr.forEach(v=>{
+        var children = arr.filter(vv=>vv[parentField] === v[pkField]);
+        children.length && ( v[childrenKey] = children );
+    });
+    arr = arr.filter( v=>v[parentField] );
+    this.push(...arr);
 }
 
 Array.prototype.forIn = function (...paras){

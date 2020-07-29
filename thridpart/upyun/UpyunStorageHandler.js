@@ -14,9 +14,11 @@ module.exports = class {
         var type = imageBufferHeaders.find(item=>Buffer.from(item.bufBegin).equals(buffer.slice(0,item.bufBegin.length)));
         type = type && type.suffix || null;
         if(!type) throw new Error('unknow imgae type in buffer content')
+        prefix.match(/\/$/gi) || ( prefix = `${prefix}/` );
+        var now = new Date();
 
-        var filename = `${Date.now()}-${1000000 + Math.floor(Math.random()*(1000000-1))}`;
-        filename = `${prefix}${filename}`
+        var filename = `${now.getTime()}-${1000000 + Math.floor(Math.random()*(1000000-1))}`;
+        filename = `${prefix}${now.format( 'yyyy' )}/${now.format( 'MM' )}/${now.format( 'dd' )}/${filename}`
         return this.put( filename,buffer )
     }
 };
