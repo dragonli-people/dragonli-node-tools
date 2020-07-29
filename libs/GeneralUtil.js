@@ -1,4 +1,50 @@
 const root = {};
+
+const http = require("http");
+const https = require("https");
+const protocolDic = {http,https};
+const imageBufferHeaders = [
+    { bufBegin: [0xff, 0xd8], bufEnd: [0xff, 0xd9], suffix: '.jpg' },
+    { bufBegin: [0x00, 0x00, 0x02, 0x00, 0x00], suffix: '.tga' },
+    { bufBegin: [0x00, 0x00, 0x10, 0x00, 0x00], suffix: '.rle' },
+    {
+        bufBegin: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+        suffix: '.png'
+    },
+    { bufBegin: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], suffix: '.gif' },
+    { bufBegin: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], suffix: '.gif' },
+    { bufBegin: [0x42, 0x4d], suffix: '.bmp' },
+    { bufBegin: [0x0a], suffix: '.pcx' },
+    { bufBegin: [0x49, 0x49], suffix: '.tif' },
+    { bufBegin: [0x4d, 0x4d], suffix: '.tif' },
+    {
+        bufBegin: [0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x20, 0x20],
+        suffix: '.ico'
+    },
+    {
+        bufBegin: [0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x20, 0x20],
+        suffix: '.cur'
+    },
+    { bufBegin: [0x46, 0x4f, 0x52, 0x4d], suffix: '.iff' },
+    { bufBegin: [0x52, 0x49, 0x46, 0x46], suffix: '.ani' }
+];
+const httpGetBuffer = async url=>new Promise((resolve,reject)=>{
+    var [_,protocol] = url.match(/^(.*)\:/);
+    protocol = ( protocol || 'http' ).toLowerCase();
+    protocolDic[protocol].get(url,res=> {
+        var chunks = []; //用于保存网络请求不断加载传输的缓冲数据
+        var size = 0;　　 //保存缓冲数据的总长度
+        res.on('data', chunk => (chunks.push(chunk), size += chunk.length));
+        res.on('end', err => err && reject('http get error') || resolve(Buffer.concat(chunks, size)));
+    });
+});
+const imgTypeFromBuffer = (buffer,defaultType=null)=>{
+    var type = imageBufferHeaders.find(item=>Buffer.from(item.bufBegin).equals(buffer.slice(0,item.bufBegin.length)));
+    return type && type.suffix || defaultType;
+}
+
+root.httpGetBuffer = httpGetBuffer;
+root.imgTypeFromBuffer = imgTypeFromBuffer;
 root.substitute = (txt,...paras)=>
     txt && paras.map((v, index) => txt = txt.replace(RegExp('\\{' + index + '\\}', 'gi'), v)) && txt || ''
 
@@ -43,6 +89,11 @@ Date.prototype.format = function (fmt) { //author: meizz
     for (var k in o)
         if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
     return fmt;
+}
+
+Array.prototype.forIn = function (...paras){
+    this.forEach(...paras);
+    return this;
 }
 
 Array.prototype.sum = function (valueFilterFunc){

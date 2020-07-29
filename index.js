@@ -9,6 +9,8 @@ const TelnetFactory =  require('./libs/TelnetFactory');
 const MysqlHandlerFactory =  require('./libs/MysqlHandlerFactory');
 const {sleep} = GeneralUtil;
 
+const UpyunStorageHandler = require('./thridpart/upyun/UpyunStorageHandler');
+
 module.exports = {
     BatchCsv,
     Crypto,
@@ -20,4 +22,7 @@ module.exports = {
     TelnetFactory,
     MysqlHandlerFactory,
     sleep,
+
+
+    UpyunStorageHandler,
 }
