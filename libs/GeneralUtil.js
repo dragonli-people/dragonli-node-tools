@@ -225,6 +225,14 @@ Array.prototype.isSort = function (sortFunc=(v1,v2=>v1-v2)){
     return list.every(v=>v.index1===v.index2);
 }
 
+Array.prototype.uniqueness = function(){
+    return Array.from(new Set(this));
+}
+
+Array.prototype.page = function(size){
+    return Array( Math.ceil( this.length / size ) ).fill(true).map((v,i)=>this.slice(i*size,i*size+size));
+}
+
 root.promiseFactory = (result,promise)=>
     ( promise = new Promise((resolve,reject)=>( result={resolve,reject} ) ) ) && ( result.promise = promise ) && result;
 
