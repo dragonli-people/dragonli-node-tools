@@ -7,6 +7,7 @@ const SimpleGetRequest =  require('./libs/SimpleGetRequest');
 const WebsocketPoolFactory =  require('./libs/WebsocketPoolFactory');
 const TelnetFactory =  require('./libs/TelnetFactory');
 const MysqlHandlerFactory =  require('./libs/MysqlHandlerFactory');
+const ImageTagExtract = require('./libs/ImageTagExtract');
 const {sleep} = GeneralUtil;
 
 const UpyunStorageHandler = require('./thridpart/upyun/UpyunStorageHandler');
@@ -23,6 +24,6 @@ module.exports = {
     MysqlHandlerFactory,
     sleep,
 
-
+    ImageTagExtract,
     UpyunStorageHandler,
 }
