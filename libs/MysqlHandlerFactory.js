@@ -6,7 +6,7 @@ module.exports = root;
 root.create = handlerFactory;
 
 async function connectFactory(host,port,user,password,database,multipleStatements=false
-    , connectionLimit = 10,conntectName=null,retryTime=5000) {
+    , connectionLimit = 10,conntectName=null,retryTime=5000,useLittleHump=false) {
     conntectName = conntectName || ( `${host}:${port}` );
 
     console.log('===mysql try connecting===',host,port,user,password,database);
@@ -75,12 +75,22 @@ async function connectFactory(host,port,user,password,database,multipleStatement
     }
 }
 
-async function handlerFactory(host,port,user,pass,database , connectionLimit = 10,conntectName=null,retryTime=5000){
+function toLittleHump(o){
+    if(!o || typeof o !== 'object')return o;
+    return Object.entries(o).reduce( (r,[k,v])=>{
+        var arr = k.split('_');
+        k = `${arr.shift()}${arr.map(v=>`${v.substr(0,1).toUpperCase()}${v.substr(1)}`).join('')}`;
+        r[k] = v;
+        return r;
+    },{});
+}
+
+async function handlerFactory(host,port,user,pass,database , connectionLimit = 10,conntectName=null,retryTime=5000,useLittleHump=false){
     const handler = {};
     port = parseInt(port);
     var [conn,connMultiple] = await Promise.all( [
-        connectFactory(host,port,user,pass,database,false,connectionLimit,conntectName,retryTime),
-        connectFactory(host,port,user,pass,database,true,connectionLimit,conntectName,retryTime),
+        connectFactory(host,port,user,pass,database,false,connectionLimit,conntectName,retryTime,useLittleHump),
+        connectFactory(host,port,user,pass,database,true,connectionLimit,conntectName,retryTime,useLittleHump),
     ]);
     handler.query = function(sql,...paras){
         // paras = paras.map(v=>`'${v.replace(/\'/gi,'\\\'')}'`);
@@ -93,6 +103,7 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
                 error && rej(error);
                 if (error) throw error;
                 // console.log('The solution is:', results);
+                useLittleHump && ( results = results.map(v=>toLittleHump(v)) );
                 res(results);
             });
         });
@@ -109,6 +120,7 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
                 error && rej(error);
                 if (error) throw error;
                 // console.log('The solution is:', results);
+                useLittleHump && ( results = results.map(v=>toLittleHump(v)) );
                 res(results);
             });
         });
@@ -119,6 +131,7 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
             conn().query(`INSERT INTO ${table} SET ?`,one,function(error,result){
                 error && console.error(error);
                 error && rej(error);
+                useLittleHump && ( result = toLittleHump(result) );
                 res(result);
             });
         });
@@ -129,7 +142,9 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
             conn().query(`select * from ${table} where ${pk}= ?`,[pkValue],function(error,result){
                 error && console.error(error);
                 error && rej(error);
-                res(result[0] || null);
+                [result] = result;
+                useLittleHump && ( result = toLittleHump(result) );
+                res(result || null);
             });
         });
     }
@@ -161,17 +176,54 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
             conn().query(`select * from ${table} ${condition}`,paras,function(error,result){
                 error && console.error(error);
                 error && rej(error);
-                res(result[0] || null);
+                [result] = result;
+                useLittleHump && ( result = toLittleHump(result) );
+                res(result || null);
             });
         });
     }
 
-    handler.findListBy = async function (table, condition , ...paras){
-        return new Promise((res,rej)=>{
-            condition && ( condition = ` where ${condition} ` );
+    handler.findListBy = async function ( ...paras){
+        var table, condition,page = paras.shift(),pageSize = paras.shift(),usePage = true;
+        if(typeof page !== 'number' && typeof page !== typeof pageSize)
+            throw new Error('page and pageSize muse all be given,or all not be given');
+        if(typeof page !== 'number'){
+            table = page;
+            condition = pageSize ;
+            usePage = false;
+        }
+        if(usePage){
+            table = paras.shift();
+            condition = paras.shift();
+        }
+        condition && ( condition = ` where ${condition} ` );
+        if(usePage){
+            var [count] = await new Promise((res,rej)=>{
+                conn().query(`select count(*) as c from ${table} ${condition}`,paras,function(error,result){
+                    error && console.error(error);
+                    error && rej(error);
+                    res(result);
+                });
+            });
+            [count] = Object.values(count);
+            var minPage = 1,maxPage = Math.ceil(count/pageSize);
+            page = Math.min( maxPage , Math.max(minPage,page) );
+            paras.push((page-1)*pageSize,pageSize);
+            var list = await new Promise((res,rej)=>{
+                conn().query(`select * from ${table} ${condition} limit ?,?`,paras,function(error,result){
+                    error && console.error(error);
+                    error && rej(error);
+                    res(result);
+                });
+            });
+            useLittleHump && ( list = list.map(v=>toLittleHump(v)) );
+            return {pageSize,page,minPage,maxPage,list};
+        }
+        return await new Promise((res,rej)=>{
             conn().query(`select * from ${table} ${condition}`,paras,function(error,result){
                 error && console.error(error);
                 error && rej(error);
+                useLittleHump && ( result = result.map(v=>toLittleHump(v)) );
                 res(result);
             });
         });
@@ -186,6 +238,7 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
             conn().query(`update ${table} SET ${keys} where ${pk}=?`,values,function(error,result){
                 error && console.error(error);
                 error && rej(error);
+                useLittleHump && ( result = toLittleHump(result) );
                 res(result);
             });
         });
@@ -218,6 +271,7 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
             var result = await this.addOne( table, one );
             [one] = await this.query( `select * from ${table} where ${pk} = ?`,result.insertId );
         }
+        useLittleHump && ( one = toLittleHump(one) );
         return one;
     }
 
