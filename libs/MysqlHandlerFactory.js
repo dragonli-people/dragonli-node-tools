@@ -159,6 +159,17 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
         });
     }
 
+    handler.count = async function(table, condition , ...paras){
+        var [count] = await new Promise((res,rej)=>{
+            conn().query(`select count(*) as c from ${table} ${condition}`,paras,function(error,result){
+                error && console.error(error);
+                error && rej(error);
+                res(result);
+            });
+        });
+        return Object.values(count)[0];
+    }
+
     handler.deleteBy = async function (table, condition , ...paras){
         return new Promise((res,rej)=>{
             condition && ( condition = ` where ${condition} ` );
