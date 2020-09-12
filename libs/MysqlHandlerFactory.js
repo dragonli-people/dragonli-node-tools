@@ -159,7 +159,8 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
         });
     }
 
-    handler.count = async function(table, condition , ...paras){
+    handler.count = async function(table, condition = '' , ...paras){
+        condition && ( condition = ` where ${condition} ` );
         var [count] = await new Promise((res,rej)=>{
             conn().query(`select count(*) as c from ${table} ${condition}`,paras,function(error,result){
                 error && console.error(error);
