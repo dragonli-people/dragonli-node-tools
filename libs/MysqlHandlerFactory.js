@@ -206,7 +206,7 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
                 });
             });
             [count] = Object.values(count);
-            var minPage = 1,maxPage = Math.ceil(count/pageSize);
+            var minPage = 1,maxPage = Math.max(1,Math.ceil(count/pageSize));
             page = Math.min( maxPage , Math.max(minPage,page) );
             paras.push((page-1)*pageSize,pageSize);
             var list = await new Promise((res,rej)=>{
