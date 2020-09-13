@@ -171,6 +171,18 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
         return Object.values(count)[0];
     }
 
+    handler.findIn = async function(table,values,field='id'){
+        if(!values || !Array.isArray(values) || !values.length)return [];
+        return await new Promise((res,rej)=>{
+            conn().query(`select *  from ${table} where ${field} in (${Array(values.length).fill('?').join(',')})`
+                ,values,function(error,result){
+                    error && console.error(error);
+                    error && rej(error);
+                    res(result);
+                });
+        });
+    }
+
     handler.deleteBy = async function (table, condition , ...paras){
         return new Promise((res,rej)=>{
             condition && ( condition = ` where ${condition} ` );
