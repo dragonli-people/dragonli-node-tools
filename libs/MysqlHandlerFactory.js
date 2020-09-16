@@ -173,6 +173,7 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
 
     handler.findIn = async function(table,values,field='id'){
         if(!values || !Array.isArray(values) || !values.length)return [];
+        values = Array.from(new Set(values));
         return await new Promise((res,rej)=>{
             conn().query(`select *  from ${table} where ${field} in (${Array(values.length).fill('?').join(',')})`
                 ,values,function(error,result){
