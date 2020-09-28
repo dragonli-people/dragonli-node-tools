@@ -1,5 +1,6 @@
 const mysql=require('mysql');
 const GeneralUtil = require('./GeneralUtil')
+const {arrayProxy} = GeneralUtil;
 
 const root = {};
 module.exports = root;
@@ -277,7 +278,7 @@ async function handlerFactory(host,port,user,pass,database , connectionLimit = 1
         // console.log('sql==',`select * from ${table} where ${rightKey} in (${leftKeyValues.map(v=>'?').join(',')})`,JSON.stringify(leftKeyValues));
         var otherList = await this.query(`select * from ${table} where 
             ${rightKey} in (${leftKeyValues.map(v=>'?').join(',')})` ,...leftKeyValues);
-        list.joinList(otherList,leftKey,rightKey,newField,dir,autoCloneRight);
+        arrayProxy( list ).joinList(otherList,leftKey,rightKey,newField,dir,autoCloneRight).result();
         return list;
     }
 

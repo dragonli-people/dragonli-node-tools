@@ -94,7 +94,166 @@ Date.prototype.format = function (fmt) { //author: meizz
     return fmt;
 }
 
+const arrayFunctionNames = Object.getOwnPropertyNames(Array.prototype)
+    .filter(n=>typeof Array.prototype[n] === 'function' ).filter(n=>n!=='constructor');
+root.arrayProxy = function(list){
+
+    const o = {
+        result() {
+            return list
+        },
+        treeEach(f, autoNext = true, childrenKey = 'children') {
+            list.forEach((v, i, arr) => visit(v, null, 1, i, list));
+            return this;
+
+            function visit(current, parent, level, index, list) {
+                var children = current && current[childrenKey] || [];
+                var next = () => children && children.forEach((v, i, arr) => visit(v, current, level + 1, i, children));
+                f(current, parent, level, index, list, next);
+                autoNext && next();
+            }
+        },
+        treeFlattenMap(f, autoNext = true, childrenKey = 'children') {
+            const arr = [];
+            this.treeEach((...paras) => arr.push(f(...paras)));
+            list = arr;
+            return this;
+        },
+        treeMap(f, autoNext = true, childrenKey = 'children') {
+            const arr = [];
+            list.forEach((v, i, arr) => visit(v, null, arr, 1, i, list));
+            list = arr;
+            return this;
+
+            function visit(current, parent, parentChildren, level, index, list) {
+                var newChildren = [];
+                var children = current && current[childrenKey] || [];
+                var next = () => children && children.forEach((v, i, arr) => visit(v, current, newChildren, level + 1, i, children));
+                var o = f(current, parent, level, index, list, next);
+                newChildren.length && (o[childrenKey] = newChildren);
+                parentChildren.push(o);
+                autoNext && next();
+            }
+        },
+        treeFlattenFilter(f, autoNext = true, childrenKey = 'children') {
+            const arr = [];
+            this.treeEach((v, ...paras) => f(v, ...paras) && arr.push(v));
+            list = arr;
+            return this;
+        },
+        treeFilter(f, autoNext = true, childrenKey = 'children') {
+            const arr = [];
+            list.forEach((v, i, arr) => visit(v, null, arr, 1, i, list));
+            list = arr;
+            return this;
+
+            function visit(current, parent, parentChildren, level, index, list) {
+                var newChildren = [];
+                var children = current && current[childrenKey] || [];
+                var next = () => children && children.forEach((v, i, arr) => visit(v, current, newChildren, level + 1, i, children));
+                var flag = f(current, parent, level, index, list, next);
+                newChildren.length && (current[childrenKey] = newChildren);
+                flag && parentChildren.push(v);
+                autoNext && next();
+            }
+        },
+        simpleToTree(parentField, pkField, childrenKey = 'children') {
+            //此函数未考虑效率
+            var arr = [...list];
+            list.length = 0;
+            arr.forEach(v => {
+                var children = arr.filter(vv => vv[parentField] === v[pkField]);
+                children.length && (v[childrenKey] = children);
+            });
+            arr = arr.filter(v => v[parentField]);
+            list.push(...arr);
+            return this;
+        },
+        forIn(...paras) {
+            list.forEach(...paras);
+            return this;
+        },
+        sum(valueFilterFunc) {
+            valueFilterFunc = valueFilterFunc || (v => v);
+            list = list.reduce((r, v) => r + valueFilterFunc(v), 0);
+            return this;
+        },
+        dictionary(keyFilter, valueFilter, skipIfExsit = false, autoClone = false) {
+            if (!keyFilter) throw new Error('keyFilter cant be empty');
+            if (typeof keyFilter === 'string') keyFilter = ((key) => v => v[key])(keyFilter);
+            if (typeof keyFilter !== 'function') throw new Error('keyFilter only can be string or function(return the dic key)');
+            valueFilter = valueFilter || (v => v);
+            list = list.reduce((r, v) => {
+                var key = keyFilter(v);
+                if (!key) return r;
+                if (skipIfExsit && r[key]) return r;
+                var value = valueFilter(v);
+                value && autoClone && (value = JSON.parse(JSON.stringify(value)));
+                r[key] = value;
+                return r;
+            }, {});
+            return this;
+        },
+        joinList(otherList, leftFieldFilter, rightFieldFilter, leftNewFiled, dir = 'left', autoCloneRight = true) {
+            if (!leftFieldFilter) throw new Error('leftFieldFilter cant be empty');
+            if (typeof leftFieldFilter === 'string') leftFieldFilter = ((key) => v => v[key])(leftFieldFilter);
+            if (typeof leftFieldFilter !== 'function') throw new Error('leftFieldFilter only can be string or function(return left field value)');
+
+            if (!rightFieldFilter) throw new Error('rightFieldFilter cant be empty');
+            if (typeof rightFieldFilter === 'string') rightFieldFilter = ((key) => v => v[key])(rightFieldFilter);
+            if (typeof rightFieldFilter !== 'function') throw new Error('rightFieldFilter only can be string or function(return right field value)');
+
+            if (!leftNewFiled || typeof leftNewFiled !== 'string') throw new Error('leftNewFiled cant be empty and must be string');
+
+            list.forEach(one => {
+                var leftJoinValue = leftFieldFilter(one);
+                if (!leftJoinValue && leftJoinValue !== 0) return;
+                var rightList = otherList.filter(that => leftJoinValue === rightFieldFilter(that));
+                autoCloneRight && (rightList = rightList.map(v => JSON.parse(JSON.stringify(v))));
+                one[leftNewFiled] = dir === 'left' ? rightList[0] || null : rightList;
+            });
+
+            return this;
+        },
+        max(getFunc) {
+            var list1 = getFunc ? list.map(getFunc) : list.map(v => v);
+            list = list1.reduce((r, v) => Math.max(r, v));
+            return this;
+        },
+        min(getFunc) {
+            var list1 = getFunc ? list.map(getFunc) : list.map(v => v);
+            list = list1.reduce((r, v) => Math.min(r, v));
+            return this;
+        },
+        isSort(sortFunc = (v1, v2 => v1 - v2)) {
+            var list1 = this.map((v, i) => ({index1: i, d: v})).sort((v1, v2) => sortFunc(v1.d, v2.d));
+            list1.forEach((v, i) => v.index2 = i);
+            list = list1.every(v => v.index1 === v.index2);
+            return this;
+        },
+        uniqueness() {
+            list = Array.from(new Set(this));
+            return this;
+        },
+        page(size) {
+            list = Array(Math.ceil(list.length / size)).fill(true).map((v, i) => list.slice(i * size, i * size + size));
+            return this;
+        },
+    };
+
+    arrayFunctionNames.forEach(n=>o[n] = function (...paras) {
+        list = list[n](...paras);
+        return this;
+    })
+
+    return o;
+}
+
+
+
+
 //回头迁移到dragonli-tools里
+/*
 Array.prototype.treeEach = function ( f , autoNext = true , childrenKey = 'children' ){
     this.forEach( (v,i,arr)=>visit( v,null,1,i,this ));
     function visit( current,parent , level , index , list ){
@@ -112,6 +271,7 @@ Array.prototype.treeFlattenMap = function ( f , autoNext = true , childrenKey = 
     this.treeEach( (...paras)=>arr.push(f(...paras)) );
     return arr;
 }
+
 
 Array.prototype.treeMap = function ( f , autoNext = true , childrenKey = 'children' ){
     const arr = [];
@@ -232,7 +392,7 @@ Array.prototype.uniqueness = function(){
 Array.prototype.page = function(size){
     return Array( Math.ceil( this.length / size ) ).fill(true).map((v,i)=>this.slice(i*size,i*size+size));
 }
-
+*/
 root.promiseFactory = (result,promise)=>
     ( promise = new Promise((resolve,reject)=>( result={resolve,reject} ) ) ) && ( result.promise = promise ) && result;
 
